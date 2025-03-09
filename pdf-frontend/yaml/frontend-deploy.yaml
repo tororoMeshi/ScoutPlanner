@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scoutplanner-frontend
+  namespace: pdfgen
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scoutplanner-frontend
+  template:
+    metadata:
+      labels:
+        app: scoutplanner-frontend
+    spec:
+      containers:
+      - name: scoutplanner-frontend
+        image: tororomeshi/scoutplanner-frontend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PDF_BACKEND_URL
+          value: "http://scoutplanner-backend:8081/generate_pdf"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: scoutplanner-frontend
+  namespace: pdfgen
+spec:
+  selector:
+    app: scoutplanner-frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
