@@ -1,186 +1,472 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <title>ScoutPlanner PDF作成フォーム</title>
-    <style>
-        table, th, td { border: 1px solid black; border-collapse: collapse; }
-        th, td { padding: 5px; }
-        .activity-group.selected, .sub-item.selected { background-color: #cceeff; }
-        .activity-group { margin-bottom: 20px; border: 1px solid #000; padding: 10px; }
-        .sub-item { cursor: pointer; }
-        .objectives, .contents, .list-section { margin-bottom: 10px; }
-    </style>
+  <meta charset="UTF-8">
+  <title>ScoutPlanner PDF作成フォーム</title>
+  <style>
+    /* 全体の背景とフォント */
+    body {
+      font-family: 'Arial', sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-top: 20px;
+    }
+    /* フォーム全体のスタイル */
+    form#pdf-form {
+      max-width: 800px;
+      margin: 20px auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    form#pdf-form h3 {
+      color: #444;
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 5px;
+      margin-top: 30px;
+    }
+    /* 入力フィールド */
+    input[type="text"],
+    input[type="date"],
+    input[type="number"],
+    textarea {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    input[type="file"] {
+      margin: 10px 0;
+    }
+    /* ボタン */
+    button {
+      background-color: #007BFF;
+      border: none;
+      color: #fff;
+      padding: 10px 15px;
+      margin: 10px 5px 10px 0;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    /* リストセクション */
+    .list-section {
+      padding: 10px;
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-bottom: 15px;
+    }
+    /* 活動詳細（大項目） */
+    .activity-group {
+      background: #f9f9f9;
+      border: 1px solid #bbb;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+    }
+    /* テーブル */
+    table {
+      width: 100%;
+      margin-top: 10px;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 8px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+  </style>
 </head>
 <body>
-    <h1>ScoutPlanner 計画書作成フォーム</h1>
-    <form id="pdf-form" action="/generate_pdf" method="post">
-        <h3>ヘッダー情報</h3>
-        プログラム名称: <input type="text" name="program_name"><br>
-        活動場所: <input type="text" name="location" id="location"><br>
-        集合場所: <input type="text" name="meeting_point" id="meeting_point"><br>
-        解散場所: <input type="text" name="dismissal_point" id="dismissal_point"><br>
-        <button type="button" id="toggleMode">現在のモード: 一括入力</button><br>
-        活動日: <input type="date" name="activity_date"><br>
-        プログラム全体の担当者: <input type="text" name="overall_responsible"><br>
-        作成者: <input type="text" name="author"><br>
-        作成日: <input type="date" name="creation_date" id="creation_date" readonly><br>
-        作成バージョン: <input type="number" name="version" id="version" readonly><br>
-        緊急連絡先:
-        <div id="emergency_contacts" class="list-section">
-            <input type="text" name="emergency_contacts[]"><br>
-        </div>
-        <button type="button" onclick="addEmergencyContact()">緊急連絡先追加</button><br>
+  <h1>ScoutPlanner 計画書作成フォーム</h1>
+  <form id="pdf-form" action="/generate_pdf" method="post">
+    <h3>ヘッダー情報</h3>
+    プログラム名称: <input type="text" name="program_name"><br>
+    活動場所: <input type="text" name="location" id="location"><br>
+    集合場所: <input type="text" name="meeting_point" id="meeting_point"><br>
+    解散場所: <input type="text" name="dismissal_point" id="dismissal_point"><br>
+    <button type="button" id="toggleMode">現在のモード: 一括入力</button><br>
+    活動日: <input type="date" name="activity_date"><br>
+    プログラム全体の担当者: <input type="text" name="overall_responsible"><br>
+    作成者: <input type="text" name="author"><br>
+    作成日: <input type="date" name="creation_date" id="creation_date" readonly><br>
+    作成バージョン: <input type="number" name="version" id="version" readonly><br>
+    緊急連絡先:
+    <div id="emergency_contacts" class="list-section">
+      <input type="text" name="emergency_contacts[]"><br>
+    </div>
+    <button type="button" onclick="addListItem('emergency_contacts')">緊急連絡先追加</button><br>
 
-        <h3>目的・内容</h3>
-        活動目的: <input type="text" name="activity_purpose"><br>
-        活動目標:<br>
-        <div id="objectives" class="objectives">
-            <input type="text" name="activity_objectives[]"><br>
-            <input type="text" name="activity_objectives[]"><br>
-            <input type="text" name="activity_objectives[]"><br>
-        </div>
-        <button type="button" onclick="addObjective()">活動目標追加</button><br>
+    <h3>目的・内容</h3>
+    活動目的: <input type="text" name="activity_purpose"><br>
+    活動目標:<br>
+    <!-- YAML のキーは activity_objectives、フォーム上は id="objectives" -->
+    <div id="objectives" class="list-section">
+      <input type="text" name="activity_objectives[]"><br>
+      <input type="text" name="activity_objectives[]"><br>
+      <input type="text" name="activity_objectives[]"><br>
+    </div>
+    <button type="button" onclick="addObjective()">活動目標追加</button><br>
 
-        活動内容:<br>
-        <div id="contents" class="contents">
-            <input type="text" name="activity_contents[]"><br>
-        </div>
-        <button type="button" onclick="addContent()">活動内容追加</button><br><br>
+    活動内容:<br>
+    <!-- YAML のキーは activity_contents、フォーム上は id="contents" -->
+    <div id="contents" class="list-section">
+      <input type="text" name="activity_contents[]"><br>
+    </div>
+    <button type="button" onclick="addContent()">活動内容追加</button><br><br>
 
-        進歩: <input type="text" name="progress"><br><br>
+    進歩: <input type="text" name="progress"><br><br>
 
-        <h3>活動詳細</h3>
-        <div id="activities"></div>
-        <button type="button" onclick="addActivityGroup()">大項目追加 (Ctrl+A)</button><br><br>
+    <h3>活動詳細</h3>
+    <!-- 活動詳細は動的に追加 -->
+    <div id="activities"></div>
+    <button type="button" onclick="addActivityGroup()">大項目追加 (Ctrl+A)</button><br><br>
 
-        <h3>フッター情報</h3>
-        持ち物:<div id="items" class="list-section"><input type="text" name="items[]"><br></div>
-        <button type="button" onclick="addListItem('items')">持ち物追加</button><br>
-        参加者:<div id="participants" class="list-section"><input type="text" name="participants[]"><br></div>
-        <button type="button" onclick="addListItem('participants')">参加者追加</button><br>
-        予算: <input type="text" name="budget"><br>
-        雨天時: <input type="text" name="rain_plan"><br>
-        備品: <input type="text" name="footer_equipment"><br>
-        制作物:<div id="products" class="list-section"><input type="text" name="products[]"><br></div>
-        <button type="button" onclick="addListItem('products')">制作物追加</button><br>
-        メモ欄:<div id="memo" class="list-section"><textarea name="memo[]"></textarea><br></div>
-        <button type="button" onclick="addListItem('memo', true)">メモ追加</button><br>
+    <h3>フッター情報</h3>
+    持ち物:
+    <div id="items" class="list-section">
+      <input type="text" name="items[]"><br>
+    </div>
+    <button type="button" onclick="addListItem('items')">持ち物追加</button><br>
+    参加者:
+    <div id="participants" class="list-section">
+      <input type="text" name="participants[]"><br>
+    </div>
+    <button type="button" onclick="addListItem('participants')">参加者追加</button><br>
+    予算: <input type="text" name="budget"><br>
+    雨天時: <input type="text" name="rain_plan"><br>
+    備品: <input type="text" name="footer_equipment"><br>
+    制作物:
+    <div id="products" class="list-section">
+      <input type="text" name="products[]"><br>
+    </div>
+    <button type="button" onclick="addListItem('products')">制作物追加</button><br>
+    メモ欄:
+    <div id="memo" class="list-section">
+      <textarea name="memo[]"></textarea><br>
+    </div>
+    <button type="button" onclick="addListItem('memo', true)">メモ追加</button><br><br>
 
-        <button type="submit">PDF生成</button>
-    </form>
+    <!-- 生成ボタン -->
+    <button type="submit">PDF生成</button>
+    <button type="button" onclick="generateMarkdown()">Markdown生成</button><br><br>
 
-<script>
-function addActivityGroup() {
-    const container = document.getElementById('activities');
-    const group = document.createElement('div');
-    group.className = 'activity-group';
-    group.innerHTML = `
-        番号: ${container.children.length + 1}<br>
-        時間: <input name="time[]">
-        担当: <input name="responsible[]">
-        プログラム項目: <input name="program_item[]">
-        集合形態: <input name="gathering_method[]"><br>
-        <table>
-            <tr><th>項目内でやること</th><th>コメント</th><th>備品</th><th>安全確認・備考</th></tr>
-        </table>
-        <button type="button" onclick="addSubItem(this.parentElement)">小項目追加</button>
-    `;
-    container.appendChild(group);
-}
-
-function addSubItem(group) {
-    const table = group.querySelector('table');
-    const row = table.insertRow();
-    row.className = 'sub-item';
-    for (let i = 0; i < 4; i++) {
-        row.insertCell(i).innerHTML = '<input>';
-    }
-}
-document.getElementById('creation_date').valueAsDate = new Date();
-
-let version = localStorage.getItem('pdf_version') || 1;
-document.getElementById('version').value = version;
-
-document.getElementById('pdf-form').addEventListener('submit', function() {
-    version++;
-    localStorage.setItem('pdf_version', version);
-    document.getElementById('version').value = version;
-});
-
-function addObjective() {
-    const container = document.getElementById('objectives');
-    container.innerHTML += '<input type="text" name="activity_objectives[]"><br>';
-}
-
-function addContent() {
-    const container = document.getElementById('contents');
-    container.innerHTML += '<input type="text" name="activity_contents[]"><br>';
-}
-
-function addActivityGroup() {
-    const container = document.getElementById('activities');
-    const group = document.createElement('div');
-    group.className = 'activity-group';
-    group.innerHTML = `
-        番号: ${container.children.length + 1}<br>
-        時間: <input name="time[]">
-        担当: <input name="responsible[]">
-        プログラム項目: <input name="program_item[]">
-        集合形態: <input name="gathering_method[]"><br>
-        <table>
-            <tr><th>項目内でやること</th><th>コメント</th><th>備品</th><th>安全確認・備考</th></tr>
-        </table>
-        <button type="button" onclick="addSubItem(this.parentElement)">小項目追加</button>
-    `;
-    container.appendChild(group);
-}
-
-function addSubItem(group) {
-    const table = group.querySelector('table');
-    const row = table.insertRow();
-    row.className = 'sub-item';
-    for (let i = 0; i < 4; i++) {
-        row.insertCell(i).innerHTML = '<input>';
-    }
-}
-
-document.addEventListener('keydown', function(event) {
-    if (event.ctrlKey && event.key === 'Enter') {
-        document.getElementById('pdf-form').submit();
-    } else if (event.ctrlKey && event.key === 'a' && !event.shiftKey) {
-        addActivityGroup();
-    } else if (event.ctrlKey && event.key === 'l') {
-        const loc = document.getElementById('location').value;
-        document.getElementById('meeting_point').value = loc;
-        document.getElementById('dismissal_point').value = loc;
-    }
-});
-
-// 入力モードの状態を保持（一括入力モードが初期値）
-let unifiedMode = true;
-
-document.addEventListener('keydown', function(event) {
-    if (event.ctrlKey && event.key === 'Enter') {
-        document.getElementById('pdf-form').submit();
-    } else if (event.ctrlKey && event.key === 'a' && !event.shiftKey) {
-        addActivityGroup();
-    } else if (event.ctrlKey && !event.shiftKey && event.key.toLowerCase() === 'l') {
-        if (unifiedMode) {
-            const loc = document.getElementById('location').value;
-            document.getElementById('meeting_point').value = loc;
-            document.getElementById('dismissal_point').value = loc;
-        } else {
-            unifiedMode = true;
-            alert("一括入力モードに切り替えました。Ctrl+Lで一括入力できます。");
-        }
-    } else if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'l') {
-        unifiedMode = false;
-        alert("個別入力モードに切り替えました。");
-    }
-});
-
-</script>
+    <!-- YAML保存・インポート用 -->
+    <button type="button" onclick="exportYAML()">YAML保存</button>
+    <input type="file" id="yaml-import-file" accept=".yaml,.yml" style="display:inline-block;">
+    <button type="button" onclick="importYAML()">YAMLインポート</button>
+  </form>
+  
+  <!-- js-yaml ライブラリ -->
+  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4/dist/js-yaml.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      // 初期設定：作成日は常に本日の日付に
+      document.getElementById('creation_date').valueAsDate = new Date();
+      let version = localStorage.getItem('pdf_version') || 1;
+      document.getElementById('version').value = version;
+      document.getElementById('pdf-form').addEventListener('submit', function() {
+          version++;
+          localStorage.setItem('pdf_version', version);
+          document.getElementById('version').value = version;
+      });
+      
+      let unifiedMode = true;
+      const modeButton = document.getElementById('toggleMode');
+      modeButton.onclick = () => {
+          unifiedMode = !unifiedMode;
+          modeButton.textContent = unifiedMode ? '現在のモード: 一括入力' : '現在のモード: 個別入力';
+      };
+      
+      function syncLocations() {
+          if (unifiedMode) {
+              const loc = document.getElementById('location').value;
+              document.getElementById('meeting_point').value = loc;
+              document.getElementById('dismissal_point').value = loc;
+          }
+      }
+      
+      document.getElementById('location').addEventListener('input', syncLocations);
+      
+      // グローバル関数
+      window.addListItem = function(id, isTextarea) {
+          const container = document.getElementById(id);
+          if (isTextarea) {
+              container.insertAdjacentHTML('beforeend', '<textarea name="'+id+'[]"></textarea><br>');
+          } else {
+              container.insertAdjacentHTML('beforeend', '<input type="text" name="'+id+'[]"><br>');
+          }
+      };
+      
+      window.addObjective = function() {
+          document.getElementById('objectives').insertAdjacentHTML('beforeend', '<input type="text" name="activity_objectives[]"><br>');
+      };
+      
+      window.addContent = function() {
+          document.getElementById('contents').insertAdjacentHTML('beforeend', '<input type="text" name="activity_contents[]"><br>');
+      };
+      
+      window.addActivityGroup = function() {
+          const container = document.getElementById('activities');
+          const group = document.createElement('div');
+          group.className = 'activity-group';
+          group.innerHTML = `
+              番号: ${container.children.length + 1}<br>
+              時間: <input name="time[]">
+              担当: <input name="responsible[]">
+              プログラム項目: <input name="program_item[]">
+              集合形態: <input name="gathering_method[]"><br>
+              <table>
+                  <tr>
+                      <th>項目内でやること</th>
+                      <th>コメント</th>
+                      <th>備品</th>
+                      <th>安全確認・備考</th>
+                  </tr>
+              </table>
+              <button type="button" onclick="addSubItem(this.parentElement)">小項目追加</button>
+          `;
+          container.appendChild(group);
+      };
+      
+      // 小項目追加（初期値オプションあり）
+      window.addSubItem = function(group, initialValues) {
+          const table = group.querySelector('table');
+          const row = table.insertRow();
+          if (initialValues && Array.isArray(initialValues) && initialValues.length >= 4) {
+              row.innerHTML = `<td><input value="${initialValues[0]}"></td>
+                               <td><input value="${initialValues[1]}"></td>
+                               <td><input value="${initialValues[2]}"></td>
+                               <td><input value="${initialValues[3]}"></td>`;
+          } else {
+              row.innerHTML = '<td><input></td><td><input></td><td><input></td><td><input></td>';
+          }
+      };
+      
+      // グローバル関数：小項目の行HTML生成
+      window.createSubItemRow = function(rowValues) {
+          return `<tr>
+              <td><input value="${rowValues[0]}"></td>
+              <td><input value="${rowValues[1]}"></td>
+              <td><input value="${rowValues[2]}"></td>
+              <td><input value="${rowValues[3]}"></td>
+          </tr>`;
+      };
+      
+      window.generateMarkdown = async function() {
+          const form = document.getElementById('pdf-form');
+          const formData = new FormData(form);
+          const data = {};
+          formData.forEach((value, key) => {
+              if (key.endsWith('[]')) {
+                  const actualKey = key.slice(0, -2);
+                  if (!data[actualKey]) {
+                      data[actualKey] = [];
+                  }
+                  data[actualKey].push(value);
+              } else {
+                  data[key] = value;
+              }
+          });
+          const yamlData = jsyaml.dump(data);
+      
+          const response = await fetch('/generate_markdown', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-yaml' },
+              body: yamlData
+          });
+      
+          if (response.ok) {
+              const markdown = await response.text();
+              const blob = new Blob([markdown], { type: 'text/markdown' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'scoutplanner.md';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+          } else {
+              alert('Markdown生成に失敗しました。');
+          }
+      };
+      
+      window.exportYAML = async function() {
+          const form = document.getElementById('pdf-form');
+          const formData = new FormData(form);
+          const data = {};
+          formData.forEach((value, key) => {
+              if (key.endsWith('[]')) {
+                  const actualKey = key.slice(0, -2);
+                  if (!data[actualKey]) {
+                      data[actualKey] = [];
+                  }
+                  data[actualKey].push(value);
+              } else {
+                  data[key] = value;
+              }
+          });
+          // 各活動グループの小項目を抽出
+          const activityGroups = document.querySelectorAll("#activities .activity-group");
+          data.sub_items = [];
+          activityGroups.forEach(group => {
+              const table = group.querySelector("table");
+              let groupSubItems = [];
+              // ヘッダー行は除く（i=1～）
+              for (let i = 1; i < table.rows.length; i++) {
+                  const cells = table.rows[i].cells;
+                  let rowData = [];
+                  for (let j = 0; j < cells.length; j++){
+                      const input = cells[j].querySelector("input");
+                      rowData.push(input ? input.value : "");
+                  }
+                  groupSubItems.push(rowData);
+              }
+              data.sub_items.push(groupSubItems);
+          });
+      
+          const yamlData = jsyaml.dump(data);
+      
+          const response = await fetch('/export_yaml', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-yaml' },
+              body: yamlData
+          });
+      
+          if (response.ok) {
+              const exportedYAML = await response.text();
+              const blob = new Blob([exportedYAML], { type: 'application/x-yaml' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'scoutplanner.yaml';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+          } else {
+              alert('YAMLエクスポートに失敗しました。');
+          }
+      };
+      
+      window.importYAML = function() {
+          const fileInput = document.getElementById('yaml-import-file');
+          if (fileInput.files.length === 0) {
+              alert("YAMLファイルを選択してください。");
+              return;
+          }
+          const file = fileInput.files[0];
+          const reader = new FileReader();
+          reader.onload = function(e) {
+              const yamlText = e.target.result;
+              try {
+                  const data = jsyaml.load(yamlText);
+                  populateFormFromData(data);
+              } catch (err) {
+                  alert("YAMLのパースに失敗しました: " + err);
+              }
+          };
+          reader.readAsText(file);
+      };
+      
+      function populateFormFromData(data) {
+          // 更新しないキー：活動詳細、小項目、作成日は別処理
+          const skipKeys = ["time", "responsible", "program_item", "gathering_method", "sub_items", "creation_date"];
+          const containerMapping = {
+              "activity_objectives": "objectives",
+              "activity_contents": "contents"
+          };
+      
+          // 通常項目の更新（作成日はスキップ）
+          for (const key in data) {
+              if (skipKeys.includes(key)) continue;
+              const value = data[key];
+              let containerId = key;
+              if (containerMapping[key]) {
+                  containerId = containerMapping[key];
+              }
+              const input = document.querySelector(`[name="${key}"]`);
+              if (input) {
+                  if (input.type === "date") {
+                      let date = new Date(value);
+                      if (!isNaN(date)) {
+                          input.value = date.toISOString().split("T")[0];
+                      } else {
+                          input.value = value;
+                      }
+                  } else {
+                      input.value = value;
+                  }
+              } else if (Array.isArray(value)) {
+                  const container = document.getElementById(containerId);
+                  if (container) {
+                      container.innerHTML = '';
+                      value.forEach(val => {
+                          container.insertAdjacentHTML('beforeend', `<input type="text" name="${key}[]" value="${val}"><br>`);
+                      });
+                  }
+              }
+          }
+      
+          // 作成日は常に本日の日付に設定
+          const creationInput = document.querySelector(`[name="creation_date"]`);
+          if (creationInput && creationInput.type === "date") {
+              let today = new Date().toISOString().split("T")[0];
+              creationInput.value = today;
+          }
+      
+          // 活動詳細の再生成
+          const activitiesContainer = document.getElementById('activities');
+          activitiesContainer.innerHTML = '';
+          if (data.time && Array.isArray(data.time)) {
+              for (let i = 0; i < data.time.length; i++) {
+                  const timeVal = data.time[i] || '';
+                  const responsibleVal = (data.responsible && data.responsible[i]) ? data.responsible[i] : '';
+                  const programItemVal = (data.program_item && data.program_item[i]) ? data.program_item[i] : '';
+                  const gatheringMethodVal = (data.gathering_method && data.gathering_method[i]) ? data.gathering_method[i] : '';
+                  let groupHtml = `
+                      番号: ${i + 1}<br>
+                      時間: <input name="time[]" value="${timeVal}">
+                      担当: <input name="responsible[]" value="${responsibleVal}">
+                      プログラム項目: <input name="program_item[]" value="${programItemVal}">
+                      集合形態: <input name="gathering_method[]" value="${gatheringMethodVal}"><br>
+                      <table>
+                          <tr>
+                              <th>項目内でやること</th>
+                              <th>コメント</th>
+                              <th>備品</th>
+                              <th>安全確認・備考</th>
+                          </tr>
+                      </table>
+                      <button type="button" onclick="addSubItem(this.parentElement)">小項目追加</button>
+                  `;
+                  const group = document.createElement('div');
+                  group.className = 'activity-group';
+                  group.innerHTML = groupHtml;
+                  activitiesContainer.appendChild(group);
+      
+                  // 小項目の再生成（sub_items が存在する場合）
+                  if (data.sub_items && data.sub_items[i]) {
+                      const table = group.querySelector("table");
+                      data.sub_items[i].forEach(rowData => {
+                          table.insertAdjacentHTML('beforeend', window.createSubItemRow(rowData));
+                      });
+                  }
+              }
+          }
+      }
+    });
+    </script>
 </body>
 </html>
-
